@@ -1,0 +1,15 @@
+[project]
+name = "app"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "mypy>=2.3.1",
+    "pandas>=3.0.6",
+    "pandas-stubs>=3.0.5.260914",
+    "pyarrow>=25.0.1",
+    "pydantic>=2.0",
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+    "torch>=2.14.0",
+]
