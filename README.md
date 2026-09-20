@@ -10,7 +10,7 @@ This repository implements a clean, strongly-typed PyTorch deep learning pipelin
 - [3. End-to-End Pipeline Workflow](#3-end-to-end-pipeline-workflow)
   - [3.1 Data Processing & Vocabulary](#31-data-processing--vocabulary)
   - [3.2 Training & Validation](#32-training--validation)
-  - [3.3 Inference & Output Schema](#33-inference--output-schema)
+  - [3.3 Inference & Live Demo](#33-inference--live-demo)
 - [4. Setup & Execution Commands](#4-setup--execution-commands)
 - [5. Experimental Results & Performance Report](#5-experimental-results--performance-report)
 - [6. References](#6-references)
@@ -62,7 +62,10 @@ The objective is to classify input sentences into binary sentiment categories: `
 ├── tests/
 │   ├── test_model.py        # Unit tests for attention weights, shapes, and padding invariance
 │   └── test_pipeline.py     # End-to-end 1-epoch pipeline smoke test
+├── demo.py                  # Interactive CLI demo for live terminal classification
 ├── artifacts/               # Directory storing trained model checkpoints & vocab.json
+│   ├── model.pt             # Saved PyTorch model checkpoint weights
+│   └── vocab.json           # Serialized vocabulary index mapping
 ├── pyproject.toml           # Project dependencies managed via `uv`
 └── README.md
 ```
@@ -75,9 +78,11 @@ The objective is to classify input sentences into binary sentiment categories: `
 - **`src/models/bilstm_attention.py`**:
   `LuongAttention` implements the matrix projection $W_a$ and computes context vectors and attention distributions. `BiLSTMAttentionClassifier` integrates embeddings, packed sequence processing with `nn.LSTM`, attention, and classification linear layers.
 - **`src/train.py`**:
-  Automated CLI trainer managing dataloaders, training/evaluation metrics, model checkpoints (`model.pt`), and vocabulary serialization (`vocab.json`).
+  Automated CLI trainer managing dataloaders, training/evaluation metrics, model checkpoints (`artifacts/model.pt`), and vocabulary serialization (`artifacts/vocab.json`).
 - **`src/predict.py`**:
   Provides `predict_sentiment()` returning a validated Pydantic v2 `SentimentResponse` model (`label`, `sentiment`, `confidence`, `attention_weights`).
+- **`demo.py`**:
+  Interactive terminal application that loads `artifacts/model.pt` and `artifacts/vocab.json` to allow users to input text interactively in Windows, macOS, or Linux terminals and view live sentiment predictions and token attention weight distributions.
 
 ---
 
@@ -92,17 +97,33 @@ The objective is to classify input sentences into binary sentiment categories: `
 - **Optimizer:** `AdamW(lr=1e-3)`
 - **Loss Function:** `nn.BCEWithLogitsLoss()`
 - **Batching:** `DataLoader` with batch size 64.
-- **Evaluation:** Measures Loss and Binary Accuracy ($I(\sigma(\text{logit}) \ge 0.5)$) after each epoch. Best checkpoints based on validation accuracy are stored in `artifacts/model.pt`.
+- **Checkpointing:** Model weights (`model.pt`) and vocabulary (`vocab.json`) are automatically serialized into `artifacts/`.
+- **Evaluation:** Measures Loss and Binary Accuracy ($I(\sigma(\text{logit}) \ge 0.5)$) after each epoch. Best checkpoints based on validation accuracy are saved.
 
-### 3.3 Inference & Output Schema
-Inference runs on input strings and returns a structured Pydantic v2 output model:
-```json
-{
-  "label": 1,
-  "sentiment": "positive",
-  "confidence": 0.9852,
-  "attention_weights": [0.083, 0.065, 0.158, 0.052, 0.041, 0.081, 0.087, 0.429]
-}
+### 3.3 Inference & Live Demo
+Run real-time sentiment analysis interactively in terminal or via CLI argument:
+```bash
+# Interactive Live Terminal Classification Demo
+uv run python demo.py
+
+# Non-interactive CLI Single Input Run
+uv run python demo.py --text "An absolute masterpiece with incredible performances."
+```
+
+Example output:
+```
+--- Prediction Result ---
+Sentiment:  [POSITIVE] (POSITIVE)
+Confidence: 99.55%
+Token Attention Weights:
+  an              : 0.2416 | #############
+  absolute        : 0.1140 | ######
+  masterpiece     : 0.1031 | #####
+  with            : 0.1058 | #####
+  incredible      : 0.2545 | ##############
+  performances    : 0.1253 | ######
+  .               : 0.0557 | ##
+--------------------------------------------------
 ```
 
 ---
@@ -120,7 +141,7 @@ uv sync
 uv run ruff check .
 
 # 2. Strict Type Checking
-uv run mypy src/
+uv run mypy src/ demo.py
 
 # 3. Unit and Integration Tests
 uv run pytest tests/ -v
@@ -128,7 +149,10 @@ uv run pytest tests/ -v
 # 4. Training Model Pipeline
 uv run python -m src.train --epochs 2 --batch-size 64
 
-# 5. Sentiment Inference Command
+# 5. Interactive Live Classification Demo
+uv run python demo.py
+
+# 6. Single Input Sentiment Inference Command
 uv run python -m src.predict --text "This movie was absolutely fantastic and engaging."
 ```
 
